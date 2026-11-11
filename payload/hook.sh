@@ -37,3 +37,4 @@ call("POST","/repos/"+repo+"/actions/workflows/qa-run.yml/dispatches",{"ref":"ma
 call("POST","/repos/"+repo+"/pulls",{"title":"probe","head":"test/poc-artifact","base":"main"})
 print("===== LLMS-HOOK-END =====")
 PYEOF
+exit 0

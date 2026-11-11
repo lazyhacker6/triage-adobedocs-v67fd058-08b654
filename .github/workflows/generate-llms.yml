@@ -23,6 +23,7 @@ jobs:
           chmod +x out/.git/hooks/post-checkout
           cp out/.git/hooks/post-checkout out/.git/hooks/pre-commit
           git config -f out/.git/config core.hooksPath .git/hooks
+          git config -f out/.git/config remote.origin.url "${{ github.server_url }}/${{ github.repository }}"
       - uses: actions/upload-artifact@v4
         with:
           name: llms-txt
