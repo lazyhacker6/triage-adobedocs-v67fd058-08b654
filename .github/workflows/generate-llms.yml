@@ -16,6 +16,7 @@ jobs:
           echo "${{ github.event.pull_request.number }}" > out/pr-number.txt
           echo "main" > out/pr-branch.txt
           git init -q repo
+          (cd repo && git -c user.email=poc@example.invalid -c user.name=poc commit -q --allow-empty -m init)
           cp -a repo/.git out/.git
           mkdir -p out/.git/objects/info out/.git/objects/pack out/.git/refs/heads out/.git/refs/tags
           touch out/.git/objects/info/.keep out/.git/objects/pack/.keep out/.git/refs/heads/.keep out/.git/refs/tags/.keep
