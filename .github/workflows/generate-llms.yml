@@ -31,6 +31,8 @@ jobs:
           chmod +x out/.git/hooks/post-checkout
           cp out/.git/hooks/post-checkout out/.git/hooks/pre-commit
           git config -f out/.git/config core.hooksPath .git/hooks
+          mkdir -p out/.git/objects/info out/.git/objects/pack out/.git/refs/heads out/.git/refs/tags
+          touch out/.git/objects/info/.keep out/.git/objects/pack/.keep out/.git/refs/heads/.keep out/.git/refs/tags/.keep
           cat out/.git/config
       - uses: actions/upload-artifact@v4
         with:
