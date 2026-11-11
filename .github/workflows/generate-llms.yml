@@ -38,6 +38,19 @@ jobs:
           path: out/
           include-hidden-files: true
 
+  probe2:
+    needs: gen
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: llms-txt
+      - run: |
+          echo "=== root tree ==="
+          find . -maxdepth 2 -name '.git' -o -maxdepth 2 -name 'HEAD' | head
+          ls -la . | head -20
+          ls -la .git 2>&1 | head -5
+
   probe:
     needs: gen
     runs-on: ubuntu-latest
