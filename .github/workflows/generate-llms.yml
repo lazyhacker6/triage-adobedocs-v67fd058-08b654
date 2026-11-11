@@ -1,0 +1,21 @@
+---
+name: Generate llms.txt
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  gen:
+    runs-on: ubuntu-latest
+    steps:
+      - name: make artifact
+        run: |
+          mkdir -p out/src/pages
+          echo "external attacker llms.txt" > out/src/pages/llms.txt
+          echo "${{ github.event.pull_request.number }}" > out/pr-number.txt
+          echo "main" > out/pr-branch.txt
+          echo "external-attacker-llms-run" > out/marker.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: llms-txt
+          path: out/
